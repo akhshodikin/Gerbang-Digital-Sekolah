@@ -129,4 +129,42 @@ Jika dibiarkan kosong, dashboard akan menampilkan status **Belum Dikonfigurasi (
    ```
 
 ---
+
+### G. Panduan Deployment ke Vercel (Standar Industri Modern)
+
+Aplikasi **GDS : Gerbang Digital Sekolah** dirancang siap-produksi untuk platform cloud modern **Vercel** dengan arsitektur serverless, global Edge CDN, dan latensi rendah kawasan Indonesia (Region Singapore `sin1`).
+
+#### 1. Persiapan Database Cloud (PostgreSQL)
+Vercel adalah platform serverless (stateless), sehingga untuk deployment publik disarankan menggunakan penyedia PostgreSQL Cloud gratis:
+- **Neon Serverless Postgres** ([neon.tech](https://neon.tech)) — *Sangat direkomendasikan untuk Next.js / Vercel*.
+- **Supabase** ([supabase.com](https://supabase.com))
+- **Vercel Postgres Marketplace**
+
+Dapatkan *Connection String* Anda, misalnya:
+```text
+postgresql://username:password@ep-xxxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+```
+
+#### 2. Seeding Database Cloud
+Setelah mendapatkan `DATABASE_URL` dari cloud provider Anda, jalankan perintah seeding sekali dari komputer lokal untuk membuat seluruh 28 tabel dan akun awal:
+```bash
+# Windows PowerShell
+$env:DATABASE_URL="postgresql://username:password@ep-xxxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+npm run db:seed
+```
+
+#### 3. Hubungkan Repositori ke Vercel
+1. Buka [https://vercel.com](https://vercel.com) dan login dengan akun GitHub Anda (`akhshodikin`).
+2. Klik tombol **"Add New..."** lalu pilih **"Project"**.
+3. Cari dan impor repositori: **`akhshodikin/Gerbang-Digital-Sekolah`**.
+4. Di bagian **Environment Variables**, tambahkan:
+   - `DATABASE_URL` : *URL koneksi PostgreSQL cloud Anda*
+   - `AUTH_SECRET` : `sdn-kandangan-tosari-secret-key-32chars-minimum-security-2026-production` *(atau string rahasia acak 32+ karakter)*
+   - `NEXT_PUBLIC_APP_NAME` : `GDS : Gerbang Digital Sekolah`
+   - `NEXT_PUBLIC_SCHOOL_NAME` : `SDN Kandangan I Tosari`
+   - `NEXT_PUBLIC_SCHOOL_REGION` : `Kecamatan Tosari, Kabupaten Pasuruan, Jawa Timur`
+5. Klik **"Deploy"**. Vercel akan otomatis melakukan proses build dan menyediakan domain HTTPS gratis (contoh: `gerbang-digital-sekolah.vercel.app`).
+6. Setiap kali Anda melakukan `git push` ke branch `main`, Vercel akan otomatis melakukan update (*Continuous Deployment*).
+
+---
 *Dikembangkan dengan standar kualitas produksi tinggi untuk SDN Kandangan I Tosari, Kabupaten Pasuruan.*

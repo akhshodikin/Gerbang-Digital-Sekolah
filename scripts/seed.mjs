@@ -7,20 +7,40 @@ import { PGlite } from "@electric-sql/pglite";
 async function runSeed() {
   console.log("🌱 Memulai seeding database SDN Kandangan I Tosari...");
 
-  const dataDir = path.resolve(process.cwd(), "data", "pglite");
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+  const databaseUrl = process.env.DATABASE_URL?.trim();
+  let client;
+  let query;
+  let exec;
+
+  if (databaseUrl && databaseUrl.length > 0) {
+    console.log("🔗 Menghubungkan ke PostgreSQL Cloud / Eksternal:", databaseUrl.replace(/:[^:@]+@/, ":****@"));
+    const { Client } = await import("pg");
+    const isLocalhost = databaseUrl.includes("localhost") || databaseUrl.includes("127.0.0.1");
+    client = new Client({
+      connectionString: databaseUrl,
+      ssl: isLocalhost ? false : { rejectUnauthorized: false },
+    });
+    await client.connect();
+    query = async (text, params = []) => {
+      return await client.query(text, params);
+    };
+    exec = async (sqlText) => {
+      return await client.query(sqlText);
+    };
+  } else {
+    console.log("📂 Menggunakan PGlite Lokal (PostgreSQL Embedded di ./data/pglite)...");
+    const dataDir = path.resolve(process.cwd(), "data", "pglite");
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    client = new PGlite(dataDir);
+    query = async (text, params = []) => {
+      return await client.query(text, params);
+    };
+    exec = async (sqlText) => {
+      return await client.exec(sqlText);
+    };
   }
-
-  const client = new PGlite(dataDir);
-
-  // Helper query
-  const query = async (text, params = []) => {
-    return await client.query(text, params);
-  };
-  const exec = async (sqlText) => {
-    return await client.exec(sqlText);
-  };
 
   // Run initialization DDL
   console.log("1. Memverifikasi struktur tabel database...");
@@ -905,6 +925,11 @@ async function runSeed() {
   console.log("4. WALI KELAS : username: walikelas4  | pass: guru123");
   console.log("5. WALI MURID : username: walimurid   | pass: wali123");
   console.log("--------------------------------------------------");
+  if (client?.end) {
+    await client.end();
+  } else if (client?.close) {
+    await client.close();
+  }
 }
 
 runSeed().catch((err) => {

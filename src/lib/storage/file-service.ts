@@ -2,12 +2,23 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 
-const UPLOAD_DIR = path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads");
+const isVercel = Boolean(process.env.VERCEL);
+const uploadDirBase = process.env.UPLOAD_DIR || (isVercel ? "/tmp/uploads" : "uploads");
+const UPLOAD_DIR = path.isAbsolute(uploadDirBase)
+  ? uploadDirBase
+  : path.resolve(process.cwd(), uploadDirBase);
 
 // Pastikan direktori uploads privat ada
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+function ensureUploadDir() {
+  try {
+    if (!fs.existsSync(UPLOAD_DIR)) {
+      fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+    }
+  } catch {
+    // Abaikan error di lingkungan serverless read-only
+  }
 }
+ensureUploadDir();
 
 export interface SaveFileResult {
   fileId: string;
