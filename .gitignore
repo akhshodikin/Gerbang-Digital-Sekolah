@@ -41,6 +41,10 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 *.pem
+*password*.txt
+*Password*.txt
+*Passwor*.txt
+*.txt.secret
 
 # IDEs & Editors
 .vscode/
