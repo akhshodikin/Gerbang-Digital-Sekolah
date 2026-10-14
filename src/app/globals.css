@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-navy: #0f2744;
+  --primary-blue: #1e3a8a;
+  --accent-blue: #2563eb;
+  --light-blue: #38bdf8;
+}
+
+body {
+  color: #1e293b;
+  background-color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Print Styles for ID Cards and Reports */
+@media print {
+  /* Sembunyikan elemen dashboard web */
+  header,
+  aside,
+  nav,
+  .no-print,
+  #student-table-section {
+    display: none !important;
+  }
+
+  html, body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Saat class printing-id-card aktif pada body, sembunyikan semua elemen SELAIN #printable-card-area */
+  body.printing-id-card * {
+    visibility: hidden !important;
+  }
+
+  body.printing-id-card #printable-card-area,
+  body.printing-id-card #printable-card-area * {
+    visibility: visible !important;
+  }
+
+  body.printing-id-card #printable-card-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10mm 5mm !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    gap: 10mm !important;
+    background: #ffffff !important;
+    z-index: 9999999 !important;
+  }
+
+  /* Ukuran kartu fisik standar CR-80 pada cetak: 85.6 mm x 54 mm */
+  .standard-id-card {
+    width: 85.6mm !important;
+    height: 54mm !important;
+    min-width: 85.6mm !important;
+    min-height: 54mm !important;
+    max-width: 85.6mm !important;
+    max-height: 54mm !important;
+    border-radius: 3mm !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .page-break {
+    page-break-after: always;
+  }
+
+  @page {
+    size: auto;
+    margin: 8mm;
+  }
+}
