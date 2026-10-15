@@ -207,7 +207,10 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("Login API Error:", error);
     return NextResponse.json(
-      { success: false, message: "Terjadi kesalahan server saat memproses login." },
+      { 
+        success: false, 
+        message: `Terjadi kesalahan server saat memproses login: ${error?.message || "Internal Server Error"}` 
+      },
       { status: 500 }
     );
   }
