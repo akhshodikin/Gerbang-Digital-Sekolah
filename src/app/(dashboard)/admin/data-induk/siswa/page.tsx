@@ -19,7 +19,11 @@ import {
   AlertTriangle,
   User,
   Camera,
+  Eye,
+  Calendar,
 } from "lucide-react";
+import * as XLSX from "xlsx";
+import { parseExcelDate, getRowValue } from "@/lib/utils/excel-date";
 
 export default function AdminStudentsPage() {
   const [students, setStudents] = useState<any[]>([]);
@@ -57,6 +61,145 @@ export default function AdminStudentsPage() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);
   const [importError, setImportError] = useState("");
+  const [previewRows, setPreviewRows] = useState<any[]>([]);
+  const [previewTotalRows, setPreviewTotalRows] = useState(0);
+
+  const handleFileSelect = (file: File | null) => {
+    setImportFile(file);
+    setImportResult(null);
+    setImportError("");
+    setPreviewRows([]);
+    setPreviewTotalRows(0);
+
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array", cellDates: true });
+        const sheetName = workbook.SheetNames.includes("DATA_SISWA")
+          ? "DATA_SISWA"
+          : workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) return;
+
+        const raw: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+        setPreviewTotalRows(raw.length);
+
+        const sample = raw.slice(0, 5).map((row, idx) => {
+          const nis = String(
+            getRowValue(row, "NIS", "nis", "Nomor Induk", "No Induk", "No. Induk", "Induk") || ""
+          ).trim();
+          const fullName = String(
+            getRowValue(row, "Nama Lengkap Siswa", "Nama Lengkap", "Nama Siswa", "Nama", "fullName", "Peserta Didik") || ""
+          ).trim();
+          const className = String(
+            getRowValue(row, "Kelas", "Rombel", "Rombongan Belajar", "className", "Tingkat") || ""
+          ).trim();
+
+          let birthPlace = String(
+            getRowValue(row, "Tempat Lahir", "Tmpt Lahir", "Tempat", "Kota Lahir", "birthPlace") || ""
+          ).trim();
+          const birthDateRaw = getRowValue(
+            row,
+            "Tanggal Lahir (YYYY-MM-DD)",
+            "Tanggal Lahir (DD/MM/YYYY)",
+            "Tanggal Lahir",
+            "Tgl Lahir",
+            "Tgl. Lahir",
+            "TGL LAHIR",
+            "Tanggal_Lahir",
+            "Tgl_Lahir",
+            "birthDate",
+            "DOB",
+            "TTL",
+            "Tgl"
+          );
+
+          let birthDateParsed: string | null = null;
+          if (typeof birthDateRaw === "string" && birthDateRaw.includes(",")) {
+            const parts = birthDateRaw.split(",");
+            if (!birthPlace && parts[0].trim()) birthPlace = parts[0].trim();
+            birthDateParsed = parseExcelDate(parts[1]?.trim());
+          } else {
+            birthDateParsed = parseExcelDate(birthDateRaw);
+          }
+
+          let parentName = String(
+            getRowValue(
+              row,
+              "Nama Orang Tua / Wali",
+              "Nama Orang Tua/Wali",
+              "Nama Orang Tua",
+              "Nama Ortu",
+              "Nama Wali",
+              "Nama Wali Murid",
+              "Orang Tua / Wali",
+              "Orang Tua/Wali",
+              "Orang Tua",
+              "Ortu",
+              "Wali",
+              "parentName"
+            ) || ""
+          ).trim();
+
+          let parentRel = String(
+            getRowValue(row, "Hubungan (Ayah/Ibu/Wali)", "Hubungan", "parentRelationship", "Status Hubungan") || "Orang Tua"
+          ).trim();
+
+          if (!parentName) {
+            const ayah = String(getRowValue(row, "Nama Ayah", "Nama Ayah Kandung", "Ayah") || "").trim();
+            const ibu = String(getRowValue(row, "Nama Ibu", "Nama Ibu Kandung", "Ibu") || "").trim();
+            const wali = String(getRowValue(row, "Nama Wali", "Wali") || "").trim();
+            if (ayah) { parentName = ayah; parentRel = "Ayah"; }
+            else if (ibu) { parentName = ibu; parentRel = "Ibu"; }
+            else if (wali) { parentName = wali; parentRel = "Wali"; }
+          }
+
+          const parentPhone = String(
+            getRowValue(
+              row,
+              "No Telp / WA Orang Tua",
+              "No Telp / WA",
+              "No Telp Ortu",
+              "No HP Ortu",
+              "No WhatsApp Ortu",
+              "No HP",
+              "No WA",
+              "No Telepon",
+              "Nomor Telepon",
+              "Telepon Ortu",
+              "HP Ortu",
+              "WA Ortu",
+              "parentPhone",
+              "Kontak Ortu",
+              "No HP Ayah",
+              "No HP Ibu"
+            ) || ""
+          ).trim().replace(/[^0-9]/g, "");
+
+          return {
+            rowNum: idx + 2,
+            nis,
+            fullName,
+            className,
+            birthPlace,
+            birthDateParsed,
+            birthDateRaw: String(birthDateRaw ?? ""),
+            parentName,
+            parentRel,
+            parentPhone,
+          };
+        });
+
+        setPreviewRows(sample);
+      } catch (err) {
+        console.warn("Gagal membaca preview Excel:", err);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -335,6 +478,8 @@ export default function AdminStudentsPage() {
               setImportFile(null);
               setImportResult(null);
               setImportError("");
+              setPreviewRows([]);
+              setPreviewTotalRows(0);
               setShowImportModal(true);
             }}
             className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm flex items-center gap-1.5 transition"
@@ -403,6 +548,7 @@ export default function AdminStudentsPage() {
                 <th className="py-3 px-3">NISN</th>
                 <th className="py-3 px-4">Nama Siswa</th>
                 <th className="py-3 px-2 text-center">L/P</th>
+                <th className="py-3 px-3">Tempat, Tgl Lahir</th>
                 <th className="py-3 px-3">Kelas</th>
                 <th className="py-3 px-4 bg-[#1E3A8A]">Orang Tua / Wali</th>
                 <th className="py-3 px-4 bg-[#1E3A8A]">No. HP / WhatsApp Ortu</th>
@@ -414,13 +560,13 @@ export default function AdminStudentsPage() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={11} className="py-8 text-center text-slate-400">
+                  <td colSpan={12} className="py-8 text-center text-slate-400">
                     Memuat data siswa dan orang tua...
                   </td>
                 </tr>
               ) : students.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-8 text-center text-slate-400">
+                  <td colSpan={12} className="py-8 text-center text-slate-400">
                     Tidak ada siswa terdaftar pada kelas ini.
                   </td>
                 </tr>
@@ -447,6 +593,27 @@ export default function AdminStudentsPage() {
                       </div>
                     </td>
                     <td className="py-3 px-2 text-center font-bold text-slate-700">{s.gender}</td>
+                    
+                    {/* Tempat & Tanggal Lahir */}
+                    <td className="py-3 px-3 text-slate-700 text-xs">
+                      {s.birthPlace || s.birthDate ? (
+                        <div>
+                          <span className="font-semibold text-slate-800">{s.birthPlace || "-"}</span>
+                          {s.birthDate && (
+                            <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                              {new Date(s.birthDate).toLocaleDateString("id-ID", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 italic text-xs">-</span>
+                      )}
+                    </td>
+
                     <td className="py-3 px-3 text-slate-600 font-medium">{s.className || "-"}</td>
                     
                     {/* Data Orang Tua Menyatu */}
@@ -778,7 +945,7 @@ export default function AdminStudentsPage() {
       {/* Modal Upload & Import XLSX */}
       {showImportModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2 text-slate-800">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
@@ -803,7 +970,8 @@ export default function AdminStudentsPage() {
                 <ul className="list-disc list-inside space-y-0.5 text-[11px] text-amber-700">
                   <li>Gunakan format template resmi yang dapat diunduh melalui tombol <strong>Template XLSX</strong>.</li>
                   <li>Kolom <strong>NIS</strong> dan <strong>Nama Lengkap Siswa</strong> wajib terisi.</li>
-                  <li>Data orang tua (Nama & No. HP) akan langsung ditautkan secara otomatis.</li>
+                  <li><strong>Tanggal Lahir</strong> mendukung format standar Excel, YYYY-MM-DD, maupun DD/MM/YYYY.</li>
+                  <li><strong>Nama Orang Tua</strong> otomatis tersimpan dan ditautkan (meskipun nomor WhatsApp belum diisi).</li>
                   <li>Token QR Code absensi akan langsung dibuatkan untuk siswa yang baru diimpor.</li>
                 </ul>
               </div>
@@ -816,10 +984,84 @@ export default function AdminStudentsPage() {
                   type="file"
                   required
                   accept=".xlsx, .xls"
-                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
                   className="block w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-slate-300 rounded-xl p-1.5 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+
+              {/* Pratinjau Deteksi Data Excel */}
+              {previewRows.length > 0 && (
+                <div className="border border-blue-200 bg-blue-50/40 rounded-xl p-3.5 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-blue-900 flex items-center gap-1.5">
+                      <Eye size={14} className="text-blue-600" /> Pratinjau Deteksi Data (5 Baris Pertama)
+                    </span>
+                    <span className="bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded text-[11px]">
+                      Total {previewTotalRows} Siswa Terbaca
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto bg-white rounded-lg border border-slate-200 shadow-sm max-h-48 overflow-y-auto">
+                    <table className="w-full text-left text-[11px]">
+                      <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0">
+                        <tr>
+                          <th className="py-2 px-2.5">Baris</th>
+                          <th className="py-2 px-2.5">NIS & Nama Siswa</th>
+                          <th className="py-2 px-2.5">Kelas</th>
+                          <th className="py-2 px-2.5 bg-sky-50 text-sky-900">Tanggal Lahir (Hasil Deteksi)</th>
+                          <th className="py-2 px-2.5 bg-emerald-50 text-emerald-900">Nama Orang Tua (Hasil Deteksi)</th>
+                          <th className="py-2 px-2.5">No. HP</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {previewRows.map((r) => (
+                          <tr key={r.rowNum} className="hover:bg-slate-50">
+                            <td className="py-2 px-2.5 font-mono text-slate-400">{r.rowNum}</td>
+                            <td className="py-2 px-2.5">
+                              <div className="font-bold text-slate-800">{r.fullName || "-"}</div>
+                              <div className="text-[10px] text-slate-500 font-mono">NIS: {r.nis || "-"}</div>
+                            </td>
+                            <td className="py-2 px-2.5 text-slate-600">{r.className || "-"}</td>
+                            <td className="py-2 px-2.5 bg-sky-50/60">
+                              {r.birthDateParsed ? (
+                                <div className="flex items-center gap-1 text-sky-900 font-medium">
+                                  <CheckCircle2 size={12} className="text-emerald-600 shrink-0" />
+                                  <span>{r.birthDateParsed}</span>
+                                  {r.birthPlace && (
+                                    <span className="text-slate-500 text-[10px]">({r.birthPlace})</span>
+                                  )}
+                                </div>
+                              ) : r.birthDateRaw ? (
+                                <span className="text-amber-700 text-[10px] italic">
+                                  Raw: {r.birthDateRaw}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 italic text-[10px]">Kosong</span>
+                              )}
+                            </td>
+                            <td className="py-2 px-2.5 bg-emerald-50/60">
+                              {r.parentName ? (
+                                <div className="flex items-center gap-1 text-emerald-900 font-medium">
+                                  <CheckCircle2 size={12} className="text-emerald-600 shrink-0" />
+                                  <span>{r.parentName}</span>
+                                  <span className="text-[10px] text-emerald-700 font-normal">
+                                    ({r.parentRel})
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 italic text-[10px]">Kosong</span>
+                              )}
+                            </td>
+                            <td className="py-2 px-2.5 font-mono text-slate-600 text-[10px]">
+                              {r.parentPhone || "-"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               {importError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">

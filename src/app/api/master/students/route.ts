@@ -141,21 +141,28 @@ export async function POST(req: NextRequest) {
     await generateQrToken(session.schoolId, "STUDENT", newStudent.id, session.userId);
 
     // Jika informasi orang tua / wali disertakan, buat atau tautkan data wali murid
-    if (data.parentName && data.parentPhone) {
+    if (data.parentName) {
       try {
-        // Cek apakah wali murid dengan nomor telepon ini sudah ada
-        const [existingGuardian] = await db
-          .select()
-          .from(schema.guardians)
-          .where(
-            and(
-              eq(schema.guardians.schoolId, session.schoolId),
-              eq(schema.guardians.phone, data.parentPhone)
-            )
-          );
+        let guardianId: string | null = null;
 
-        let guardianId = existingGuardian?.id;
-        if (!existingGuardian) {
+        // Cek apakah wali murid dengan nama dan nomor telepon ini sudah ada
+        if (data.parentPhone) {
+          const [existingGuardian] = await db
+            .select()
+            .from(schema.guardians)
+            .where(
+              and(
+                eq(schema.guardians.schoolId, session.schoolId),
+                eq(schema.guardians.phone, data.parentPhone),
+                eq(schema.guardians.fullName, data.parentName)
+              )
+            );
+          if (existingGuardian) {
+            guardianId = existingGuardian.id;
+          }
+        }
+
+        if (!guardianId) {
           const [newGuardian] = await db
             .insert(schema.guardians)
             .values({
@@ -163,9 +170,9 @@ export async function POST(req: NextRequest) {
               schoolId: session.schoolId,
               fullName: data.parentName,
               relationship: data.parentRelationship || "Orang Tua",
-              phone: data.parentPhone,
-              isPhoneVerified: true,
-              whatsappActive: true,
+              phone: data.parentPhone || "-",
+              isPhoneVerified: Boolean(data.parentPhone),
+              whatsappActive: Boolean(data.parentPhone),
               address: data.address || null,
             })
             .returning();

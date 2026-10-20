@@ -63,11 +63,11 @@ export async function GET(req: NextRequest) {
       { "Kolom": "Jenis Kelamin (L/P)", "Keterangan": "L = Laki-laki, P = Perempuan (Wajib diisi)", "Contoh": "L" },
       { "Kolom": "Kelas", "Keterangan": "Nama rombel yang sudah ada di sistem (Kelas 1 s/d Kelas 6)", "Contoh": "Kelas 1" },
       { "Kolom": "Tempat Lahir", "Keterangan": "Kota / Kabupaten tempat kelahiran (Opsional)", "Contoh": "Pasuruan" },
-      { "Kolom": "Tanggal Lahir (YYYY-MM-DD)", "Keterangan": "Format tahun-bulan-tanggal standar YYYY-MM-DD (Opsional)", "Contoh": "2019-05-15" },
+      { "Kolom": "Tanggal Lahir (YYYY-MM-DD)", "Keterangan": "Format tanggal YYYY-MM-DD (2019-05-15) atau DD/MM/YYYY (15/05/2019) atau format tanggal Excel otomatis", "Contoh": "2019-05-15" },
       { "Kolom": "Alamat Domisili Siswa", "Keterangan": "Alamat tempat tinggal siswa (Opsional)", "Contoh": "Dusun Krajan, Tosari" },
-      { "Kolom": "Nama Orang Tua / Wali", "Keterangan": "Nama orang tua kandung atau wali murid (Sangat disarankan)", "Contoh": "Hadi Santoso" },
+      { "Kolom": "Nama Orang Tua / Wali", "Keterangan": "Nama ayah, ibu, atau wali murid (Bisa diisi nama saja walau belum ada nomor telepon)", "Contoh": "Hadi Santoso" },
       { "Kolom": "Hubungan (Ayah/Ibu/Wali)", "Keterangan": "Status hubungan keluarga (Ayah, Ibu, atau Wali)", "Contoh": "Ayah" },
-      { "Kolom": "No Telp / WA Orang Tua", "Keterangan": "Nomor aktif WhatsApp orang tua untuk pengiriman notifikasi absensi", "Contoh": "081234567899" },
+      { "Kolom": "No Telp / WA Orang Tua", "Keterangan": "Nomor aktif WhatsApp orang tua (Opsional, untuk pengiriman notifikasi absensi)", "Contoh": "081234567899" },
     ];
     const guideSheet = XLSX.utils.json_to_sheet(guideRows);
     guideSheet["!cols"] = [{ wch: 28 }, { wch: 65 }, { wch: 20 }];

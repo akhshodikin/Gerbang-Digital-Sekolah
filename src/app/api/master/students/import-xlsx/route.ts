@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { generateQrToken } from "@/lib/qr/qr-service";
 import { logAudit } from "@/lib/audit/audit-logger";
 import * as XLSX from "xlsx";
+import { parseExcelDate, getRowValue } from "@/lib/utils/excel-date";
 
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(["ADMIN"]);
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const workbook = XLSX.read(buffer, { type: "buffer" });
+    const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
 
     // Gunakan sheet DATA_SISWA atau sheet pertama
     const sheetName = workbook.SheetNames.includes("DATA_SISWA")
@@ -61,6 +62,7 @@ export async function POST(req: NextRequest) {
       classMap.set(c.name.trim().toLowerCase(), c.id);
       classMap.set(c.gradeLevel.toString(), c.id);
       classMap.set(`kelas ${c.gradeLevel}`, c.id);
+      classMap.set(`kls ${c.gradeLevel}`, c.id);
     }
 
     let successCount = 0;
@@ -71,93 +73,151 @@ export async function POST(req: NextRequest) {
       const row = rawRows[i];
       const rowNumber = i + 2; // Baris 1 adalah header di Excel
 
-      // Ekstraksi nilai dengan toleransi variasi header
-      const nisRaw = (row["NIS"] || row["nis"] || row["Nomor Induk"] || "").toString().trim();
-      const nisnRaw = (row["NISN"] || row["nisn"] || "").toString().trim();
-      const nameRaw = (
-        row["Nama Lengkap Siswa"] ||
-        row["Nama Lengkap"] ||
-        row["Nama"] ||
-        row["fullName"] ||
-        ""
-      ).toString().trim();
-      const genderRaw = (
-        row["Jenis Kelamin (L/P)"] ||
-        row["Jenis Kelamin"] ||
-        row["L/P"] ||
-        row["gender"] ||
-        "L"
-      ).toString().trim().toUpperCase();
-      const classRaw = (row["Kelas"] || row["Rombel"] || row["className"] || "").toString().trim();
-      const birthPlaceRaw = (row["Tempat Lahir"] || row["birthPlace"] || "").toString().trim();
-      const birthDateRaw = (
-        row["Tanggal Lahir (YYYY-MM-DD)"] ||
-        row["Tanggal Lahir"] ||
-        row["birthDate"] ||
-        ""
-      ).toString().trim();
-      const addressRaw = (
-        row["Alamat Domisili Siswa"] ||
-        row["Alamat"] ||
-        row["address"] ||
-        ""
-      ).toString().trim();
+      // 1. Ekstraksi NIS & NISN
+      const nisRaw = String(
+        getRowValue(row, "NIS", "nis", "Nomor Induk", "No Induk", "No. Induk", "Induk") || ""
+      ).trim();
 
-      // Data orang tua yang menyatu
-      const parentName = (
-        row["Nama Orang Tua / Wali"] ||
-        row["Nama Orang Tua"] ||
-        row["Nama Wali"] ||
-        row["parentName"] ||
-        ""
-      ).toString().trim();
-      const parentRel = (
-        row["Hubungan (Ayah/Ibu/Wali)"] ||
-        row["Hubungan"] ||
-        row["parentRelationship"] ||
-        "Orang Tua"
-      ).toString().trim();
-      const parentPhone = (
-        row["No Telp / WA Orang Tua"] ||
-        row["No Telp Ortu"] ||
-        row["No HP Ortu"] ||
-        row["No WhatsApp Ortu"] ||
-        row["parentPhone"] ||
-        ""
-      ).toString().trim().replace(/[^0-9]/g, "");
+      const nisnRaw = String(
+        getRowValue(row, "NISN", "nisn", "Nomor Induk Siswa Nasional") || ""
+      ).trim();
 
+      // 2. Ekstraksi Nama Siswa
+      const nameRaw = String(
+        getRowValue(row, "Nama Lengkap Siswa", "Nama Lengkap", "Nama Siswa", "Nama", "fullName", "Peserta Didik") || ""
+      ).trim();
+
+      // 3. Ekstraksi Jenis Kelamin
+      const genderRaw = String(
+        getRowValue(row, "Jenis Kelamin (L/P)", "Jenis Kelamin", "L/P", "JK", "Gender", "Kelamin") || "L"
+      ).trim().toUpperCase();
+
+      // 4. Ekstraksi Kelas
+      const classRaw = String(
+        getRowValue(row, "Kelas", "Rombel", "Rombongan Belajar", "className", "Tingkat") || ""
+      ).trim();
+
+      // 5. Ekstraksi Tempat & Tanggal Lahir
+      let birthPlaceRaw = String(
+        getRowValue(row, "Tempat Lahir", "Tmpt Lahir", "Tempat", "Kota Lahir", "birthPlace") || ""
+      ).trim();
+
+      const birthDateRawValue = getRowValue(
+        row,
+        "Tanggal Lahir (YYYY-MM-DD)",
+        "Tanggal Lahir (DD/MM/YYYY)",
+        "Tanggal Lahir",
+        "Tgl Lahir",
+        "Tgl. Lahir",
+        "TGL LAHIR",
+        "Tanggal_Lahir",
+        "Tgl_Lahir",
+        "birthDate",
+        "DOB",
+        "TTL",
+        "Tgl"
+      );
+
+      // Jika Tempat Lahir kosong namun kolom tanggal memuat koma (misal: "Pasuruan, 15 Mei 2019" atau "Pasuruan, 15-05-2019")
+      let birthDateVal: string | null = null;
+      if (typeof birthDateRawValue === "string" && birthDateRawValue.includes(",")) {
+        const parts = birthDateRawValue.split(",");
+        if (!birthPlaceRaw && parts[0].trim()) {
+          birthPlaceRaw = parts[0].trim();
+        }
+        birthDateVal = parseExcelDate(parts[1]?.trim());
+      } else {
+        birthDateVal = parseExcelDate(birthDateRawValue);
+      }
+
+      // 6. Ekstraksi Alamat
+      const addressRaw = String(
+        getRowValue(row, "Alamat Domisili Siswa", "Alamat Domisili", "Alamat Siswa", "Alamat", "address", "Domisili", "Tempat Tinggal") || ""
+      ).trim();
+
+      // 7. Ekstraksi Data Orang Tua / Wali
+      // Prioritas 1: Kolom Nama Orang Tua / Wali gabungan
+      let parentName = String(
+        getRowValue(
+          row,
+          "Nama Orang Tua / Wali",
+          "Nama Orang Tua/Wali",
+          "Nama Orang Tua",
+          "Nama Ortu",
+          "Nama Wali",
+          "Nama Wali Murid",
+          "Orang Tua / Wali",
+          "Orang Tua/Wali",
+          "Orang Tua",
+          "Ortu",
+          "Wali",
+          "parentName"
+        ) || ""
+      ).trim();
+
+      let parentRel = String(
+        getRowValue(row, "Hubungan (Ayah/Ibu/Wali)", "Hubungan", "parentRelationship", "Status Hubungan") || "Orang Tua"
+      ).trim();
+
+      // Prioritas 2: Kolom Terpisah Nama Ayah / Nama Ibu (Format Dapodik Kemendikbud)
+      if (!parentName) {
+        const ayah = String(getRowValue(row, "Nama Ayah", "Nama Ayah Kandung", "Ayah") || "").trim();
+        const ibu = String(getRowValue(row, "Nama Ibu", "Nama Ibu Kandung", "Ibu") || "").trim();
+        const wali = String(getRowValue(row, "Nama Wali", "Wali") || "").trim();
+
+        if (ayah) {
+          parentName = ayah;
+          parentRel = "Ayah";
+        } else if (ibu) {
+          parentName = ibu;
+          parentRel = "Ibu";
+        } else if (wali) {
+          parentName = wali;
+          parentRel = "Wali";
+        }
+      }
+
+      // 8. Ekstraksi No Telp / WhatsApp Orang Tua
+      const parentPhoneRaw = String(
+        getRowValue(
+          row,
+          "No Telp / WA Orang Tua",
+          "No Telp / WA",
+          "No Telp Ortu",
+          "No HP Ortu",
+          "No WhatsApp Ortu",
+          "No HP",
+          "No WA",
+          "No Telepon",
+          "Nomor Telepon",
+          "Telepon Ortu",
+          "HP Ortu",
+          "WA Ortu",
+          "parentPhone",
+          "Kontak Ortu",
+          "No HP Ayah",
+          "No HP Ibu"
+        ) || ""
+      ).trim();
+      const parentPhone = parentPhoneRaw.replace(/[^0-9]/g, "");
+
+      // Validasi kolom wajib
       if (!nisRaw) {
-        errors.push({ row: rowNumber, error: "Kolom NIS kosong" });
+        errors.push({ row: rowNumber, error: "Kolom NIS wajib diisi" });
         continue;
       }
       if (!nameRaw) {
-        errors.push({ row: rowNumber, nis: nisRaw, error: "Nama lengkap siswa kosong" });
+        errors.push({ row: rowNumber, nis: nisRaw, error: "Nama lengkap siswa wajib diisi" });
         continue;
       }
 
-      const gender = genderRaw === "P" ? "P" : "L";
+      const gender = genderRaw.startsWith("P") ? "P" : "L";
 
-      // Cocokkan kelas
+      // Pencocokan kelas
       let matchedClassId: string | null = null;
       if (classRaw) {
         const cleanClassName = classRaw.toLowerCase();
         matchedClassId = classMap.get(cleanClassName) || null;
-      }
-
-      // Validasi format tanggal lahir bila ada
-      let birthDateVal: string | null = null;
-      if (birthDateRaw) {
-        if (/^\d{4}-\d{2}-\d{2}$/.test(birthDateRaw)) {
-          birthDateVal = birthDateRaw;
-        } else if (typeof birthDateRaw === "number") {
-          // Tanggal Excel serial number
-          try {
-            const dateObj = XLSX.SSF.parse_date_code(birthDateRaw);
-            birthDateVal = `${dateObj.y}-${String(dateObj.m).padStart(2, "0")}-${String(dateObj.d).padStart(2, "0")}`;
-          } catch {
-            birthDateVal = null;
-          }
-        }
       }
 
       try {
@@ -175,7 +235,7 @@ export async function POST(req: NextRequest) {
         let studentId = existingStudent?.id;
 
         if (existingStudent) {
-          // Update data siswa
+          // Perbarui data siswa
           await db
             .update(schema.students)
             .set({
@@ -184,7 +244,7 @@ export async function POST(req: NextRequest) {
               gender,
               currentClassId: matchedClassId || existingStudent.currentClassId,
               birthPlace: birthPlaceRaw || existingStudent.birthPlace,
-              birthDate: birthDateVal || existingStudent.birthDate,
+              birthDate: birthDateVal !== null ? birthDateVal : existingStudent.birthDate,
               address: addressRaw || existingStudent.address,
               status: "AKTIF",
               updatedAt: new Date(),
@@ -217,60 +277,76 @@ export async function POST(req: NextRequest) {
         if (studentId) {
           try {
             await generateQrToken(session.schoolId, "STUDENT", studentId, session.userId);
-          } catch (qrErr) {
-            // Token mungkin sudah ada, abaikan error duplikasi token
+          } catch {
+            // Token sudah ada, abaikan duplikasi
           }
         }
 
-        // Sinkronisasi data Orang Tua / Wali murid
-        if (studentId && parentName && parentPhone) {
+        // Sinkronisasi data Orang Tua / Wali Murid
+        if (studentId && parentName) {
           try {
-            const [existingGuardian] = await db
-              .select()
-              .from(schema.guardians)
-              .where(
-                and(
-                  eq(schema.guardians.schoolId, session.schoolId),
-                  eq(schema.guardians.phone, parentPhone)
-                )
-              );
+            // 1. Cek apakah siswa ini sudah memiliki relasi wali di studentGuardians
+            const [existingLink] = await db
+              .select({
+                linkId: schema.studentGuardians.id,
+                guardianId: schema.studentGuardians.guardianId,
+              })
+              .from(schema.studentGuardians)
+              .where(eq(schema.studentGuardians.studentId, studentId));
 
-            let guardianId = existingGuardian?.id;
-            if (!existingGuardian) {
-              const [newG] = await db
-                .insert(schema.guardians)
-                .values({
-                  id: crypto.randomUUID(),
-                  schoolId: session.schoolId,
-                  fullName: parentName,
-                  relationship: parentRel || "Orang Tua",
-                  phone: parentPhone,
-                  isPhoneVerified: true,
-                  whatsappActive: true,
-                  address: addressRaw || null,
-                })
-                .returning();
-              guardianId = newG.id;
-            } else {
-              // Update nama jika diperlukan
+            if (existingLink) {
+              // Siswa sudah punya wali tertaut: update nama & no telp wali siswa ini
               await db
                 .update(schema.guardians)
-                .set({ fullName: parentName, updatedAt: new Date() })
-                .where(eq(schema.guardians.id, existingGuardian.id));
-            }
+                .set({
+                  fullName: parentName,
+                  relationship: parentRel || "Orang Tua",
+                  ...(parentPhone ? { phone: parentPhone, whatsappActive: true, isPhoneVerified: true } : {}),
+                  ...(addressRaw ? { address: addressRaw } : {}),
+                  updatedAt: new Date(),
+                })
+                .where(eq(schema.guardians.id, existingLink.guardianId));
+            } else {
+              // 2. Siswa belum punya wali tertaut
+              let guardianId: string | null = null;
 
-            if (guardianId) {
-              const [existingLink] = await db
-                .select()
-                .from(schema.studentGuardians)
-                .where(
-                  and(
-                    eq(schema.studentGuardians.guardianId, guardianId),
-                    eq(schema.studentGuardians.studentId, studentId)
-                  )
-                );
+              // Cari apakah sudah ada wali dengan nomor telepon DAN nama yang sama persis di sekolah (misal saudara kandung)
+              if (parentPhone) {
+                const [existingGuardian] = await db
+                  .select()
+                  .from(schema.guardians)
+                  .where(
+                    and(
+                      eq(schema.guardians.schoolId, session.schoolId),
+                      eq(schema.guardians.phone, parentPhone),
+                      eq(schema.guardians.fullName, parentName)
+                    )
+                  );
+                if (existingGuardian) {
+                  guardianId = existingGuardian.id;
+                }
+              }
 
-              if (!existingLink) {
+              // Jika belum ada wali yang cocok, buatkan record wali baru
+              if (!guardianId) {
+                const [newG] = await db
+                  .insert(schema.guardians)
+                  .values({
+                    id: crypto.randomUUID(),
+                    schoolId: session.schoolId,
+                    fullName: parentName,
+                    relationship: parentRel || "Orang Tua",
+                    phone: parentPhone || "-",
+                    isPhoneVerified: Boolean(parentPhone),
+                    whatsappActive: Boolean(parentPhone),
+                    address: addressRaw || null,
+                  })
+                  .returning();
+                guardianId = newG.id;
+              }
+
+              // Tautkan wali ke siswa
+              if (guardianId) {
                 await db
                   .insert(schema.studentGuardians)
                   .values({
@@ -298,22 +374,22 @@ export async function POST(req: NextRequest) {
       userId: session.userId,
       action: "IMPORT",
       tableName: "students",
-      reason: `Impor XLSX Siswa oleh ${session.username}: ${successCount} baru, ${updatedCount} diperbarui, ${errors.length} gagal.`,
+      recordId: session.schoolId,
+      reason: `Impor data siswa via Excel: ${successCount} baru, ${updatedCount} diperbarui`,
     });
 
     return NextResponse.json({
       success: true,
-      message: `Impor selesai! Berhasil menambahkan ${successCount} siswa baru, memperbarui ${updatedCount} data siswa.${errors.length > 0 ? ` (${errors.length} baris dilewati karena kendala validasi)` : ""}`,
-      totalProcessed: rawRows.length,
+      message: `Impor selesai! Berhasil menambahkan ${successCount} siswa baru dan memperbarui ${updatedCount} siswa.`,
       successCount,
       updatedCount,
       errorCount: errors.length,
       errors,
     });
   } catch (error: any) {
-    console.error("Import XLSX error:", error);
+    console.error("Import students error:", error);
     return NextResponse.json(
-      { success: false, message: `Gagal memproses file Excel: ${error.message || "Format tidak didukung"}` },
+      { success: false, message: "Terjadi kesalahan internal saat memproses file Excel." },
       { status: 500 }
     );
   }

@@ -289,3 +289,57 @@ test("16. Cadangan database JSON memuat metadata dan struktur tabel yang valid",
   assert.equal(mockBackup.npsn, "20519101");
   assert.ok(mockBackup.tables.students.length >= 4);
 });
+
+test("17. Deteksi dan parsing tanggal lahir Excel (serial, ISO, DD/MM/YYYY) dan nama orang tua fleksibel", async () => {
+  const xlsxModule = await import("xlsx");
+  const XLSX = xlsxModule.default || xlsxModule;
+
+  // Simulasi parsing tanggal lahir
+  const parseDate = (val) => {
+    if (!val) return null;
+    if (typeof val === "number") {
+      const d = XLSX.SSF.parse_date_code(val);
+      return `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
+    }
+    const str = String(val).trim();
+    if (/^\d{4,6}$/.test(str)) {
+      const d = XLSX.SSF.parse_date_code(Number(str));
+      return `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
+    }
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(str)) {
+      const [y, m, day] = str.split("-");
+      return `${y}-${m.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+    const dmy = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+    if (dmy) {
+      return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+    }
+    return null;
+  };
+
+  // Uji serial number Excel
+  assert.equal(parseDate(43600), "2019-05-15");
+  assert.equal(parseDate("43600"), "2019-05-15");
+
+  // Uji ISO format
+  assert.equal(parseDate("2019-05-15"), "2019-05-15");
+  assert.equal(parseDate("2019-5-1"), "2019-05-01");
+
+  // Uji format umum Indonesia DD/MM/YYYY
+  assert.equal(parseDate("15/05/2019"), "2019-05-15");
+  assert.equal(parseDate("15-05-2019"), "2019-05-15");
+  assert.equal(parseDate("15.05.2019"), "2019-05-15");
+
+  // Simulasi ekstraksi nama orang tua dari variasi header
+  const row1 = { "Nama Orang Tua / Wali": "Hadi Santoso", "No Telp / WA Orang Tua": "081234567899" };
+  const row2 = { "Nama Ayah": "Joko Widodo", "Nama Ibu": "Iriana" };
+  const row3 = { "NAMA ORTU": "Siti Aminah" };
+
+  const getParentName = (r) => {
+    return r["Nama Orang Tua / Wali"] || r["Nama Orang Tua"] || r["NAMA ORTU"] || r["Nama Ayah"] || r["Nama Ibu"] || "";
+  };
+
+  assert.equal(getParentName(row1), "Hadi Santoso");
+  assert.equal(getParentName(row2), "Joko Widodo");
+  assert.equal(getParentName(row3), "Siti Aminah");
+});

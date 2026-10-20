@@ -116,37 +116,43 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       .where(eq(schema.students.id, studentId));
 
     // Sinkronisasi data orang tua / wali yang menyatu dengan siswa
-    if (data.parentName && data.parentPhone) {
+    if (data.parentName) {
       const [existingLink] = await db
         .select()
         .from(schema.studentGuardians)
         .where(eq(schema.studentGuardians.studentId, studentId));
 
       if (existingLink) {
-        // Update guardian yang sudah tertaut
+        // Update guardian yang sudah tertaut ke siswa ini
         await db
           .update(schema.guardians)
           .set({
             fullName: data.parentName,
             relationship: data.parentRelationship || "Orang Tua",
-            phone: data.parentPhone,
+            ...(data.parentPhone ? { phone: data.parentPhone } : {}),
             updatedAt: new Date(),
           })
           .where(eq(schema.guardians.id, existingLink.guardianId));
       } else {
-        // Cek jika nomor telepon sudah ada
-        const [existingGuardian] = await db
-          .select()
-          .from(schema.guardians)
-          .where(
-            and(
-              eq(schema.guardians.schoolId, session.schoolId),
-              eq(schema.guardians.phone, data.parentPhone)
-            )
-          );
+        // Cek jika sudah ada wali dengan nama dan nomor telepon yang sama persis
+        let gId: string | null = null;
+        if (data.parentPhone) {
+          const [existingGuardian] = await db
+            .select()
+            .from(schema.guardians)
+            .where(
+              and(
+                eq(schema.guardians.schoolId, session.schoolId),
+                eq(schema.guardians.phone, data.parentPhone),
+                eq(schema.guardians.fullName, data.parentName)
+              )
+            );
+          if (existingGuardian) {
+            gId = existingGuardian.id;
+          }
+        }
 
-        let gId = existingGuardian?.id;
-        if (!existingGuardian) {
+        if (!gId) {
           const [newG] = await db
             .insert(schema.guardians)
             .values({
@@ -154,9 +160,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
               schoolId: session.schoolId,
               fullName: data.parentName,
               relationship: data.parentRelationship || "Orang Tua",
-              phone: data.parentPhone,
-              isPhoneVerified: true,
-              whatsappActive: true,
+              phone: data.parentPhone || "-",
+              isPhoneVerified: Boolean(data.parentPhone),
+              whatsappActive: Boolean(data.parentPhone),
             })
             .returning();
           gId = newG.id;
