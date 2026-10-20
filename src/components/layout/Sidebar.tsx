@@ -76,11 +76,22 @@ export default function Sidebar({ roles = [], isOpen = false, onClose }: Sidebar
           {/* Brand Header Sidebar */}
           <div className="pb-3 border-b border-slate-100">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-blue-600 text-white tracking-wider">
-                  GDS
-                </span>
-                <span className="text-xs font-bold text-slate-800">: Gerbang Digital Sekolah</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 p-0.5 flex items-center justify-center shrink-0">
+                  <img
+                    src="/images/logo-gds.png"
+                    alt="Logo GDS"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5 leading-none">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-blue-600 text-white tracking-wider">
+                      GDS
+                    </span>
+                    <span className="text-xs font-bold text-slate-800">Gerbang Digital</span>
+                  </div>
+                </div>
               </div>
               <button
                 onClick={onClose}
@@ -89,7 +100,7 @@ export default function Sidebar({ roles = [], isOpen = false, onClose }: Sidebar
                 Tutup
               </button>
             </div>
-            <p className="text-[10.5px] text-slate-500 mt-1 leading-tight">
+            <p className="text-[10px] text-slate-500 mt-1.5 leading-tight">
               Sistem Presensi & Keamanan Pintu Gerbang
             </p>
             <p className="text-[10px] font-bold text-blue-900 mt-0.5">

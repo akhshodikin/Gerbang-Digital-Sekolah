@@ -126,8 +126,12 @@ export default function PiketAbsensiPage() {
         {/* Kiosk Top Bar */}
         <header className="px-6 py-4 bg-[#0B1E36]/90 border-b border-blue-500/20 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 shrink-0 shadow-lg">
           <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-rose-900 border border-red-400/50 flex items-center justify-center font-black text-white text-base shadow-md">
-              SD
+            <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-md border border-sky-400/50 flex items-center justify-center p-1 shadow-lg shrink-0 overflow-hidden">
+              <img
+                src="/images/logo-gds.png"
+                alt="Logo GDS"
+                className="w-full h-full object-contain filter drop-shadow"
+              />
             </div>
             <div>
               {/* GDS di atas ABSENSI QR CODE SDN KANDANGAN I TOSARI */}
@@ -265,30 +269,39 @@ export default function PiketAbsensiPage() {
     <div className="space-y-6">
       {/* Top Header Bar with Mode Window / Fullscreen Selector */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-        <div>
-          {/* GDS di atas ABSENSI QR CODE SDN KANDANGAN I TOSARI */}
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-blue-600 text-white tracking-wider">
-              GDS
-            </span>
-            <span className="text-xs font-bold text-blue-900">
-              : Gerbang Digital Sekolah
-            </span>
-            <span className="text-[11px] text-slate-500 hidden md:inline">
-              — Sistem Presensi & Keamanan Pintu Gerbang Sekolah
-            </span>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 p-1 flex items-center justify-center shrink-0">
+            <img
+              src="/images/logo-gds.png"
+              alt="Logo GDS"
+              className="w-full h-full object-contain"
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg sm:text-xl font-black text-slate-800">
-              ABSENSI QR CODE SDN KANDANGAN I TOSARI
-            </h1>
-            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-              Live Gateway
-            </span>
+          <div>
+            {/* GDS di atas ABSENSI QR CODE SDN KANDANGAN I TOSARI */}
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-blue-600 text-white tracking-wider">
+                GDS
+              </span>
+              <span className="text-xs font-bold text-blue-900">
+                : Gerbang Digital Sekolah
+              </span>
+              <span className="text-[11px] text-slate-500 hidden md:inline">
+                — Sistem Presensi & Keamanan Pintu Gerbang Sekolah
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg sm:text-xl font-black text-slate-800">
+                ABSENSI QR CODE SDN KANDANGAN I TOSARI
+              </h1>
+              <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                Live Gateway
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Arahkan kamera ke QR Code kartu, gunakan pencarian manual, atau uji dengan simulasi suara perempuan
+            </p>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Arahkan kamera ke QR Code kartu, gunakan pencarian manual, atau uji dengan simulasi suara perempuan
-          </p>
         </div>
 
         {/* View Switcher: Mode Window vs Full Layar */}

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Settings, Save, School, Clock, MessageSquare, RefreshCw } from "lucide-react";
+import KopSuratLogoManager from "@/components/reports/KopSuratLogoManager";
 
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -172,6 +173,9 @@ export default function AdminSettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* Kelola Logo Kop Surat Laporan PDF */}
+        <KopSuratLogoManager />
 
         {/* Aturan Jam Absensi */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">

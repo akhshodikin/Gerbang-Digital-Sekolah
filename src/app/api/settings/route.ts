@@ -51,19 +51,19 @@ export async function PUT(req: NextRequest) {
     const { schoolData, settingsData } = body;
 
     if (schoolData) {
+      const updateSchoolData: Record<string, any> = { updatedAt: new Date() };
+      if (schoolData.name !== undefined) updateSchoolData.name = schoolData.name;
+      if (schoolData.address !== undefined) updateSchoolData.address = schoolData.address;
+      if (schoolData.phone !== undefined) updateSchoolData.phone = schoolData.phone;
+      if (schoolData.email !== undefined) updateSchoolData.email = schoolData.email;
+      if (schoolData.headmasterName !== undefined) updateSchoolData.headmasterName = schoolData.headmasterName;
+      if (schoolData.headmasterNip !== undefined) updateSchoolData.headmasterNip = schoolData.headmasterNip;
+      if (schoolData.logoUrl !== undefined) updateSchoolData.logoUrl = schoolData.logoUrl;
+      if (schoolData.regionLogoUrl !== undefined) updateSchoolData.regionLogoUrl = schoolData.regionLogoUrl;
+
       await db
         .update(schema.schools)
-        .set({
-          name: schoolData.name,
-          address: schoolData.address,
-          phone: schoolData.phone,
-          email: schoolData.email,
-          headmasterName: schoolData.headmasterName,
-          headmasterNip: schoolData.headmasterNip,
-          logoUrl: schoolData.logoUrl,
-          regionLogoUrl: schoolData.regionLogoUrl,
-          updatedAt: new Date(),
-        })
+        .set(updateSchoolData)
         .where(eq(schema.schools.id, session.schoolId));
     }
 

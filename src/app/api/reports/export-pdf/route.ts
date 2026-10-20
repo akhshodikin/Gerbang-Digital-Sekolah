@@ -4,6 +4,45 @@ import { getDb, schema } from "@/lib/db";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import fs from "fs";
+import path from "path";
+
+// Helper konversi URL/File ke Base64 Data URL untuk jsPDF
+async function getImageDataUrl(
+  inputUrlOrBase64?: string | null,
+  fallbackRelativePath?: string
+): Promise<string | null> {
+  if (inputUrlOrBase64 && inputUrlOrBase64.startsWith("data:image/")) {
+    return inputUrlOrBase64;
+  }
+  if (inputUrlOrBase64 && (inputUrlOrBase64.startsWith("http://") || inputUrlOrBase64.startsWith("https://"))) {
+    try {
+      const resp = await fetch(inputUrlOrBase64);
+      if (resp.ok) {
+        const buffer = await resp.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString("base64");
+        const contentType = resp.headers.get("content-type") || "image/png";
+        return `data:${contentType};base64,${base64}`;
+      }
+    } catch (e) {
+      console.warn("Gagal fetch url gambar:", inputUrlOrBase64, e);
+    }
+  }
+  if (fallbackRelativePath) {
+    try {
+      const filePath = path.join(process.cwd(), fallbackRelativePath);
+      if (fs.existsSync(filePath)) {
+        const ext = path.extname(filePath).replace(".", "").toLowerCase();
+        const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "image/png";
+        const fileBuf = fs.readFileSync(filePath);
+        return `data:${mime};base64,${fileBuf.toString("base64")}`;
+      }
+    } catch (e) {
+      console.warn("Gagal membaca fallback image:", fallbackRelativePath, e);
+    }
+  }
+  return null;
+}
 
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(["ADMIN", "WALI_KELAS", "GURU_PIKET"]);
@@ -37,6 +76,28 @@ export async function GET(req: NextRequest) {
     const pageWidth = doc.internal.pageSize.getWidth();
 
     // 1. KOP SURAT RESMI SEKOLAH
+    // Muat Logo Kabupaten (Kiri) dan Logo Sekolah/GDS (Kanan)
+    const leftLogoData = await getImageDataUrl(school?.regionLogoUrl, "public/images/tut-wuri-handayani.png");
+    const rightLogoData = await getImageDataUrl(school?.logoUrl, "public/images/logo-gds.png");
+
+    if (leftLogoData) {
+      try {
+        const format = leftLogoData.startsWith("data:image/jpeg") || leftLogoData.startsWith("data:image/jpg") ? "JPEG" : "PNG";
+        doc.addImage(leftLogoData, format, 14, 10, 20, 24);
+      } catch (err) {
+        console.warn("Gagal menyematkan logo kabupaten di PDF:", err);
+      }
+    }
+
+    if (rightLogoData) {
+      try {
+        const format = rightLogoData.startsWith("data:image/jpeg") || rightLogoData.startsWith("data:image/jpg") ? "JPEG" : "PNG";
+        doc.addImage(rightLogoData, format, pageWidth - 34, 10, 20, 24);
+      } catch (err) {
+        console.warn("Gagal menyematkan logo sekolah di PDF:", err);
+      }
+    }
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.text("PEMERINTAH KABUPATEN PASURUAN", pageWidth / 2, 14, { align: "center" });

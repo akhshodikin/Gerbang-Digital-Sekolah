@@ -90,8 +90,12 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
 
           {/* Logo & School Title */}
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/30 to-sky-600/30 border border-blue-400/40 flex items-center justify-center font-black text-white shadow-inner shrink-0">
-              <span className="text-xs leading-none text-sky-300 font-extrabold tracking-wider">GDS</span>
+            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm border border-sky-400/40 flex items-center justify-center p-1 shadow-inner shrink-0 overflow-hidden">
+              <img
+                src="/images/logo-gds.png"
+                alt="Logo GDS"
+                className="w-full h-full object-contain filter drop-shadow"
+              />
             </div>
             <div>
               {/* GDS: Gerbang Digital Sekolah diletakkan DI ATAS "ABSENSI QR CODE SDN KANDANGAN I TOSARI" */}

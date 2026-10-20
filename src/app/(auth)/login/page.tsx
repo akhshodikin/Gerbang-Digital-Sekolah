@@ -57,8 +57,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-blue-900/40">
         {/* Header Kartu */}
         <div className="bg-gradient-to-r from-[#0F2744] via-[#1E3A8A] to-[#0F2744] text-white p-6 text-center border-b border-blue-500/20">
-          <div className="w-14 h-14 bg-blue-500/20 border-2 border-blue-400/40 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
-            <QrCode size={30} className="text-blue-300" />
+          {/* Logo GDS */}
+          <div className="w-20 h-20 bg-white/10 backdrop-blur-md border-2 border-sky-400/50 rounded-2xl flex items-center justify-center mx-auto mb-3.5 p-2 shadow-xl shadow-blue-950/50">
+            <img
+              src="/images/logo-gds.png"
+              alt="Logo GDS Gerbang Digital Sekolah"
+              className="w-full h-full object-contain filter drop-shadow"
+            />
           </div>
 
           {/* Judul Utama: GDS : Gerbang Digital Sekolah & Penjelasan Aplikasi */}

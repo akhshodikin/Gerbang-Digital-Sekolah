@@ -66,21 +66,30 @@ export default function AdminDashboardPage() {
     <div className="space-y-6">
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-[#0F2744] via-[#1E3A8A] to-[#0F2744] rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10.5px] font-black uppercase tracking-wider bg-sky-500/30 text-sky-200 border border-sky-400/30 px-2.5 py-0.5 rounded-full">
-              GDS : GERBANG DIGITAL SEKOLAH
-            </span>
-            <span className="text-[11px] font-semibold text-blue-200 hidden sm:inline">
-              Panel Administrator Sekolah
-            </span>
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md border border-sky-400/40 p-1.5 flex items-center justify-center shrink-0 shadow-lg">
+            <img
+              src="/images/logo-gds.png"
+              alt="Logo GDS"
+              className="w-full h-full object-contain filter drop-shadow"
+            />
           </div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-            Dashboard Kehadiran SDN Kandangan I Tosari
-          </h1>
-          <p className="text-xs sm:text-sm text-blue-200 mt-1 flex items-center gap-1.5">
-            <Calendar size={14} /> {todayFormatted} (Zona Waktu Asia/Jakarta WIB)
-          </p>
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[10px] sm:text-[10.5px] font-black uppercase tracking-wider bg-sky-500/30 text-sky-200 border border-sky-400/30 px-2.5 py-0.5 rounded-full">
+                GDS : GERBANG DIGITAL SEKOLAH
+              </span>
+              <span className="text-[11px] font-semibold text-blue-200 hidden sm:inline">
+                Panel Administrator Sekolah
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight">
+              Dashboard Kehadiran SDN Kandangan I Tosari
+            </h1>
+            <p className="text-xs sm:text-sm text-blue-200 mt-1 flex items-center gap-1.5">
+              <Calendar size={14} /> {todayFormatted} (Zona Waktu Asia/Jakarta WIB)
+            </p>
+          </div>
         </div>
 
         <div className="flex gap-2">

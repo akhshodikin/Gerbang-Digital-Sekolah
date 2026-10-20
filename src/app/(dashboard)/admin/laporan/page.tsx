@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { FileText, Download, Printer, Filter, Calendar, Users, GraduationCap } from "lucide-react";
+import KopSuratLogoManager from "@/components/reports/KopSuratLogoManager";
 
 export default function AdminReportsPage() {
   const [reportType, setReportType] = useState<"student" | "teacher">("student");
@@ -110,6 +111,9 @@ export default function AdminReportsPage() {
           </a>
         </div>
       </div>
+
+      {/* Bagian Pengelolaan Logo Kop Surat Laporan PDF */}
+      <KopSuratLogoManager />
 
       {/* Guide Card */}
       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-xs text-slate-600 space-y-2">
